@@ -10,10 +10,14 @@ use pathfinding::prelude::{absdiff, astar};
 // Use mouse to draw obstacles
 // When drawing done run A star
 
-const TILE_W: i32 = 32;
-const TILE_H: i32 = 32;
+const TILE_W: i32 = 16;
+const TILE_H: i32 = 16;
+
 const MARGIN_X: i32 = 32;
 const MARGIN_Y: i32 = 32;
+
+const MAP_W: usize = 40;
+const MAP_H: usize = 40;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Tile{
@@ -59,9 +63,14 @@ impl Tile {
 		self.block
 	}
 
-	/// Distance function between tiles. For pathfinding.
-	pub fn dist(&self, other: &Tile) -> u32 {
+	/// Manhattan distance function between tiles. For pathfinding.
+	pub fn _dist_m(&self, other: &Tile) -> u32 {
 		(absdiff(self.pos.0, other.pos.0) + absdiff(self.pos.1, other.pos.1)) as u32
+	}
+
+	/// Distance function between tiles. For pathfinding.
+	pub fn dist_e(&self, other: &Tile) -> u32 {
+		((absdiff(self.pos.0, other.pos.0)^2 + absdiff(self.pos.1, other.pos.1)^2) as f32).sqrt() as u32
 	}
 
 }
@@ -127,7 +136,7 @@ impl Map {
 		//println!("{:?}", xy);
 		let mut ret: Vec<Tile> = vec![];
 
-		if xy.0 - 1 > 0 {
+		if xy.0 > 0 {
 			let tile1 = self.get_tile((xy.0 - 1, xy.1));
 			if !tile1.get_block(){ ret.push(tile1.clone())};
 			//if tile1.get_block(){println!("Tile {:?} blocks", tile1);}
@@ -138,7 +147,7 @@ impl Map {
 			if !tile1.get_block(){ret.push(tile1.clone())};
 		}
 
-		if xy.1 - 1 > 0 {
+		if xy.1  > 0 {
 			let tile1 = self.get_tile((xy.0, xy.1 - 1));
 			if !tile1.get_block(){ret.push(tile1.clone())};
 		}
@@ -164,9 +173,6 @@ impl Map {
 
 }
 
-fn _run_pathfinding(_map: &mut Map){
-	println!("button pressed");
-}
 
 fn run_astar(map: &mut Map){
 
@@ -175,14 +181,14 @@ fn run_astar(map: &mut Map){
 	let result = astar(
 		map.get_start(), 
 		|p| map.adjacent(p), 
-		|p| p.dist(map.get_goal()),
+		|p| p.dist_e(map.get_goal()),
 		|p| p == map.get_goal()
 		);
 	//println!("{:?}", result);
 	//println!("{:?}",result.expect("no path found").1);
-	
-	map.mark_path(result.expect("no path found").0);
-
+	if let Some((tiles_path, _)) = result {
+		map.mark_path(tiles_path);
+	}
 }
 
 
@@ -190,7 +196,8 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
     // Clear the screen to a blank, white color
     gfx.clear(Color::from_rgba(5,5,30,1.0));
 
-    let mut map = Map::new((20,20));
+    let mut map = Map::new((MAP_W,MAP_H));
+
     let lim_x = (MARGIN_X + (map.dims.0 as i32 * TILE_W)) as f32;
     let lim_y = (MARGIN_Y + (map.dims.1 as i32 * TILE_H)) as f32;
 
@@ -232,9 +239,10 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
         	}
         }
 
-        if input.key_down(Key::P){
-        	run_astar(&mut map);
+        if input.key_down(Key::R){
+        	map = Map::new((MAP_W,MAP_H));
         }
+
 
         if input.key_down(Key::Escape){
         	return Ok(());
@@ -242,6 +250,7 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
 
 
 
+        run_astar(&mut map);
 
     	for tile in &map.tiles {
 	    	gfx.fill_rect(&tile.to_rect(), tile.to_color());
@@ -253,7 +262,7 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
 
 	    font.draw(
 	        &mut gfx,
-	        "Press to \"P\" run algorithm",
+	        "Press to \"R\" restart",
 	        Color::WHITE,
 	        Vector::new(
 	        	((map.dims.0 as i32 + 2) * TILE_W + MARGIN_X) as f32,
