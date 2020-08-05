@@ -10,14 +10,14 @@ use pathfinding::prelude::{absdiff, astar};
 // Use mouse to draw obstacles
 // When drawing done run A star
 
-const TILE_W: i32 = 16;
-const TILE_H: i32 = 16;
+const TILE_W: i32 = 32;
+const TILE_H: i32 = 32;
 
 const MARGIN_X: i32 = 32;
 const MARGIN_Y: i32 = 32;
 
-const MAP_W: usize = 40;
-const MAP_H: usize = 40;
+const MAP_W: usize = 20;
+const MAP_H: usize = 20;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Tile{
@@ -109,7 +109,6 @@ impl Map {
 	pub fn get_tile_mut(&mut self, pos: (i32, i32)) -> &mut Tile {
 
 		let ind = pos.0 as usize + (self.dims.0 * pos.1 as usize);
-		//println!("request location: {:?}, acquired tile: {:?}",pos, &self.tiles[ind]);
 		&mut self.tiles[ind]
 	}
 
@@ -155,7 +154,7 @@ impl Map {
 			let tile1 = self.get_tile((xy.0, xy.1 + 1));
 			if !tile1.get_block(){ret.push(tile1.clone())};
 		}
-		ret.into_iter().map(|p| (p, 1)).collect()
+		ret.into_iter().map(|p| (p, 2)).collect()
 	}
 
 	pub fn mark_path(&mut self, tiles: Vec<Tile>){
@@ -245,7 +244,7 @@ async fn app(window: Window, mut gfx: Graphics, mut input: Input) -> Result<()> 
 
 
         if input.key_down(Key::Escape){
-        	return Ok(());
+        	//return Ok(());
         }
 
 
